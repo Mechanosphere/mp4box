@@ -1,0 +1,58 @@
+#!/usr/bin/python
+
+import os, sys, subprocess, shlex, re, fnmatch
+from subprocess import call 
+import shutil 
+import smtplib
+from email.mime.text import MIMEText
+from subprocess import Popen, PIPE
+
+# GLOBAL VARIABLES - DIR LOCATIONS 
+videoDrop_dir="/Users/mathiesj/Desktop/video_drop" # Video Drop Location 
+
+
+
+
+# GLOBAL FUNCTIONS - MP4Box 
+def probe_file():
+  fpath = os.path.join(root, file)
+	try:
+		command = ['/Applications/Osmo4.app/Contents/MacOS/MP4Box', '-info', fpath]
+		p = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+		while True:
+			line = p.stdout.readline()
+			if line != '':
+				print "Start::", line.rstrip()
+				if line.startswith("[iso file]"):
+					command_01 = ['/Applications/Osmo4.app/Contents/MacOS/MP4Box', '-info', file]
+					p_01 = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+					out, err = p_01.communicate()
+					print "===============================OUTPUT START: %s ===============================" % file
+					print "ERROR: %s - email send to xxxx@xxxxxxx.com" % fpath
+					print out
+					print "===============================OUTPUT FINISH: %s ===============================" % file
+					msg = MIMEText("This file has errors: %s - attached Report: %s" % (fpath, out))
+					msg["From"] = "jonathan.mathiesen@vimn.com"
+					msg["To"] = "jonathan.mathiesen@vimn.com"
+					msg["Subject"] = "Video file: %s Failed MP4Box analysis - perform manual QC" % file 
+					p_02 = Popen(["/usr/sbin/sendmail", "-t"], stdin=PIPE)
+					p_02.communicate(msg.as_string())
+			else:
+				break
+	except subprocess.CalledProcessError, e:
+		print "Subprocess Error with file: %s" % file
+	return 
+
+
+# SCRIPT 
+for root, dirs, files in os.walk(videoDrop_dir):
+	for file in files:
+		print "File: %s" % file
+		if file.startswith('.'):
+			print "This file: %s is not valid" % file
+		elif file.endswith(('.mov', '.mp4')):
+			probe_file()
+		elif not file.startswith(('.mov', '.mp4')):
+			print "This file: %s is not a valid video file" % file
+		else:
+			print "No files found in the Video Drop: %s" % videoDrop_dir
